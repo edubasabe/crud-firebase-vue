@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import db from './firebase';
-import { stat } from 'fs';
+import router from './router';
 
 Vue.use(Vuex)
 
@@ -21,14 +21,14 @@ export default new Vuex.Store({
       state.tarea.id = tarea.id;
       state.tarea.nombre = tarea.nombre;
     },
-    clearTarea(state) {
-      state.tarea.id = null;
-      state.tarea.nombre = null;
+    eliminarTarea(state, id) {
+      state.tareas = state.tareas.filter( doc => {
+        return doc.id != id
+      })
     }
   },
   actions: {
-    getTareas({commit, state}) {
-      if (!state.tareas.length) {        
+    getTareas({commit, state}) {        
         const tareas = [];
         db.collection('tareas').get()
         .then(snapshot =>{
@@ -42,10 +42,8 @@ export default new Vuex.Store({
         })
   
         commit('setTareas', tareas);
-      }
     },
     getTarea({commit, state}, id) {
-      if (!state.tarea.id && !state.tarea.nombre) {
         db.collection('tareas').doc(id).get()
         .then(doc => {
           // console.log(doc.data());
@@ -54,10 +52,31 @@ export default new Vuex.Store({
           tarea.id = doc.id;
           commit('setTarea', tarea);
         })
-      }
     },
-    cleanTareaState({commit}) {
-      commit('clearTarea');
+    editarTarea({commit}, tarea){
+      db.collection('tareas').doc(tarea.id).update({
+        nombre: tarea.nombre
+      })
+      .then(()=>{
+        router.push({name: 'inicio'});
+      })
+    },
+    agregarTarea({commit}, nombre) {
+      db.collection('tareas').add({
+        nombre: nombre
+      })
+      .then(doc => {
+        console.log(doc.id);
+        router.push({name: 'inicio'});
+      })
+    },
+    eliminarTarea({commit, dispatch}, id) {
+      db.collection('tareas').doc(id).delete()
+      .then(()=>{
+        console.log("La tarea fue eliminada");
+        // dispatch('getTareas')
+        commit('eliminarTarea', id);
+      })
     }
   }
 })
